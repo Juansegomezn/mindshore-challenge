@@ -14,6 +14,7 @@ builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connect
 
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHttpClient<INasaService, NasaService>();
 
 var secret = builder.Configuration["JwtSettings:Secret"] ?? "SuperSecretKeySpaceExplorer2026MindShoreChallenge!!";
 var key = Encoding.ASCII.GetBytes(secret);
