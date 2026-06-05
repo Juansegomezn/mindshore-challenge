@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  space-db:
+    image: postgres:16-alpine
+    container_name: space-postgres-db
+    environment:
+      POSTGRES_USER: space_admin
+      POSTGRES_PASSWORD: SpaceSecurePassword2026!
+      POSTGRES_DB: space_explorer_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - space-network
+
+volumes:
+  postgres_data:
+
+networks:
+  space-network:
+    driver: bridge

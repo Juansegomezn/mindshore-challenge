@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="SpaceExplorer.API/SpaceExplorer.API.csproj" />
+  <Project Path="SpaceExplorer.Core/SpaceExplorer.Core.csproj" />
+  <Project Path="SpaceExplorer.Infrastructure/SpaceExplorer.Infrastructure.csproj" />
+</Solution>
