@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpaceExplorer.Core.DTOs;
 using SpaceExplorer.Core.Interfaces;
@@ -19,7 +18,7 @@ namespace SpaceExplorer.API.Controllers
         }
 
         [HttpPost("enrich")]
-        public async Task<IActionResult> Enrich([ someBody ] FromBodyAttribute _, [FromQuery] string title, [FromQuery] string description)
+        public async Task<IActionResult> Enrich([FromQuery] string title, [FromQuery] string description)
         {
             try
             {
