@@ -16,6 +16,10 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpClient<INasaService, NasaService>();
 builder.Services.AddHttpClient<IAiService, AiService>();
+builder.Services.AddScoped<ICollectionService, CollectionService>();
+
+builder.Services.AddHttpClient<INasaService, NasaService>();
+builder.Services.AddHttpClient<IAiService, AiService>();
 
 var secret = builder.Configuration["JwtSettings:Secret"] ?? "SuperSecretKeySpaceExplorer2026MindShoreChallenge!!";
 var key = Encoding.ASCII.GetBytes(secret);
