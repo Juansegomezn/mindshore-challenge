@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthPage } from './features/auth/AuthPages';
 import { SearchPage } from './features/dashboard/SearchPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { CollectionsPage } from './features/collections/CollectionsPage';
 
 function App() {
   return (
@@ -13,6 +14,12 @@ function App() {
         <Route path="/search" element={
           <ProtectedRoute>
             <SearchPage />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/collections" element={
+          <ProtectedRoute>
+            <CollectionsPage />
           </ProtectedRoute>
         } />
 

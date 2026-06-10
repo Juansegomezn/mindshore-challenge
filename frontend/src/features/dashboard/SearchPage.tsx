@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { apiClient } from '../../core/api';
-import { Search, Compass, Calendar, Camera } from 'lucide-react';
+import { Search, Compass, Folder } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { SaveToCollectionModal } from '../../components/SaveToCollectionModal';
 
 interface NasaItem {
   id: string;
@@ -20,9 +22,19 @@ export const SearchPage = () => {
   const [camera, setCamera] = useState('');
   const [earthDate, setEarthDate] = useState('');
 
+  const navigate = useNavigate();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<NasaItem | null>(null);
+
+  const openSaveModal = (item: NasaItem) => {
+    setSelectedMedia(item);
+    setIsModalOpen(true);
+  };
+  // --------------------------------------------
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!loading) setLoading(true);
 
     try {
       const params: any = {};
@@ -48,10 +60,16 @@ export const SearchPage = () => {
     <div style={{ minHeight: '100vh', backgroundColor: '#0B0F19', color: '#F3F4F6', padding: '2rem', fontFamily: 'sans-serif' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
-        {/* Cabecera */}
+        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
           <Compass size={36} style={{ color: '#3B82F6' }} />
           <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>Centro de Exploración Cósmica</h1>
+          <button 
+            onClick={() => navigate('/collections')}
+            style={{ marginLeft: 'auto', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#1F2937', border: '1px solid #374151', borderRadius: '6px', color: '#FFF', cursor: 'pointer' }}
+          >
+            <Folder size={16} /> Mis Colecciones
+          </button>
         </div>
 
         {/* Panel de Filtros */}
@@ -119,7 +137,11 @@ export const SearchPage = () => {
                   <p style={{ fontSize: '0.875rem', color: '#9CA3AF', marginBottom: '1.5rem', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', flexGrow: 1 }}>
                     {item.description}
                   </p>
-                  <button style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', backgroundColor: '#1F2937', color: '#3B82F6', border: '1px solid #3B82F6', fontWeight: 'bold', cursor: 'pointer' }}>
+                  
+                  <button 
+                    onClick={() => openSaveModal(item)}
+                    style={{ width: '100%', padding: '0.5rem', borderRadius: '4px', backgroundColor: '#1F2937', color: '#3B82F6', border: '1px solid #3B82F6', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
                     Guardar en Colección
                   </button>
                 </div>
@@ -127,6 +149,16 @@ export const SearchPage = () => {
             ))}
           </div>
         )}
+
+        {/* LLAMADA AL MODAL */}
+        {isModalOpen && selectedMedia && (
+          <SaveToCollectionModal 
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)} 
+            mediaItem={selectedMedia} 
+          />
+        )}
+
       </div>
     </div>
   );
