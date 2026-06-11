@@ -1,4 +1,3 @@
-using System.Threading.Tasks;
 using SpaceExplorer.Core.DTOs;
 
 namespace SpaceExplorer.Core.Interfaces
