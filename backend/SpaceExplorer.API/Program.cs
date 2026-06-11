@@ -6,7 +6,10 @@ using SpaceExplorer.Core.Interfaces;
 using SpaceExplorer.Infrastructure.Data;
 using SpaceExplorer.Infrastructure.Services;
 
+DotNetEnv.Env.Load("../.env");
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddCors(options =>
 {
