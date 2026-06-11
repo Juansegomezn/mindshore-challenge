@@ -17,42 +17,38 @@ namespace SpaceExplorer.Infrastructure.Services
         {
             _httpClient = httpClient;
             _apiKey = configuration["AiSettings:ApiKey"] ?? string.Empty;
-            _endpoint = configuration["AiSettings:BaseUrl"] ?? "https://api.groq.com/openai/v1/chat/completions";
+            _endpoint = configuration["AiSettings:BaseUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
         }
 
         public async Task<AiEnrichmentResultDto> EnrichMediaAsync(string title, string baseDescription)
         {
             try
             {
-                var prompt = $"Actúa como un astrofísico de la NASA. Enriquéceme este contenido espacial aportando datos científicos reales en español:\n" +
+                var prompt = $"Actúa como un astrofísico de la NASA. Enriquéceme este contenido espacial aportando datos científicos en español:\n" +
                             $"Título: {title}\n" +
                             $"Descripción: {baseDescription}\n\n" +
                             $"Devuelve exclusivamente un objeto JSON plano con las siguientes claves exactas:\n" +
-                            $"- 'EnrichedDescription': Una descripción científica mejorada.\n" +
-                            $"- 'DatoCurioso': Un dato asombroso o poco conocido sobre este tipo de cuerpo u objeto celeste.\n" +
+                            $"- 'contextoHistorico': Una descripción o contexto histórico-científico del objeto.\n" +
+                            $"- 'datoCurioso': Un dato asombroso o poco conocido.\n" +
                             $"No uses formato markdown, entrega solo el JSON puro.";
 
                 var jsonResponse = await CallAiProviderAsync(prompt);
-                
                 using var doc = JsonDocument.Parse(jsonResponse);
                 var root = doc.RootElement;
 
-                string enriched = root.TryGetProperty("EnrichedDescription", out var env) ? env.GetString() : 
-                                (root.TryGetProperty("enrichedDescription", out var envMin) ? envMin.GetString() : string.Empty);
-                                
-                string curioso = root.TryGetProperty("DatoCurioso", out var cur) ? cur.GetString() : 
-                                (root.TryGetProperty("datoCurioso", out var curMin) ? curMin.GetString() : string.Empty);
+                string historico = root.TryGetProperty("contextoHistorico", out var h) ? h.GetString() : string.Empty;
+                string curioso = root.TryGetProperty("datoCurioso", out var c) ? c.GetString() : string.Empty;
 
                 return new AiEnrichmentResultDto(
-                    string.IsNullOrEmpty(enriched) ? "[Datos Estimados] Análisis completado." : enriched,
-                    string.IsNullOrEmpty(curioso) ? "Las fluctuaciones de radiación en esta zona siguen bajo estudio constante." : curioso
+                    string.IsNullOrEmpty(historico) ? "[Datos Estimados] Análisis de espectro completado." : historico,
+                    string.IsNullOrEmpty(curioso) ? "Las fluctuaciones de radiación en esta zona siguen bajo estudio." : curioso
                 );
             }
             catch
             {
                 return new AiEnrichmentResultDto(
-                    "[Datos de Contingencia] La signatura térmica e ionización gaseosa del cuerpo celeste sugieren una alta concentración de elementos pesados formados por nucleosíntesis estelar.",
-                    "Sabías que la mayoría de los elementos pesados en tu propio cuerpo, como el hierro de la sangre, se forjaron originalmente en el núcleo de estrellas masivas que colapsaron hace miles de millones de años."
+                    "[Datos de Contingencia] La signatura térmica e ionización gaseosa sugieren una alta concentración de elementos pesados.",
+                    "Sabías que la mayoría de los elementos pesados en tu cuerpo se forjaron originalmente en el núcleo de estrellas masivas."
                 );
             }
         }
@@ -61,33 +57,73 @@ namespace SpaceExplorer.Infrastructure.Services
         {
             try
             {
-                var prompt = $"Actúa como un astrofísico senior de la NASA. Compara estas dos imágenes espaciales:\n" +
-                            $"Imagen 1: {request.Title1} (URL: {request.ImageUrl1})\n" +
-                            $"Imagen 2: {request.Title2} (URL: {request.ImageUrl2})\n\n" +
-                            $"Genera un análisis comparativo riguroso en español. Devuelve exclusivamente un objeto JSON con los siguientes campos de texto exactos:\n" +
-                            $"- 'AnalisisSideBySide'\n" +
-                            $"- 'ElementosComunes'\n" +
-                            $"- 'DiferenciasClave'\n" +
-                            $"- 'ConclusionCientifica'\n" +
-                            $"No envíes formato markdown, solo el JSON puro.";
+                if (string.IsNullOrEmpty(_apiKey) || _apiKey == "InjectedFromEnv")
+                {
+                    throw new InvalidOperationException("API_KEY_NOT_CONFIGURED");
+                }
 
-                var jsonResponse = await CallAiProviderAsync(prompt);
-                using var doc = JsonDocument.Parse(jsonResponse);
-                var root = doc.RootElement;
+                var requestMessage = new HttpRequestMessage(HttpMethod.Post, _endpoint);
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
+
+                var systemPrompt = "Actúa como un astrofísico senior de la NASA. Analiza visualmente las dos imágenes provistas por sus URLs y genera un reporte comparativo riguroso en español. Devuelve exclusivamente un objeto JSON con los siguientes campos exactos: 'analisisSideBySide', 'elementosComunes', 'diferenciasClave', 'conclusionCientifica'. No envíes formato markdown, solo el JSON plano.";
+
+                var requestBody = new
+                {
+                    model = "gemini-1.5-flash",
+                    messages = new[]
+                    {
+                        new { 
+                            role = "user", 
+                            content = new object[]
+                            {
+                                new { type = "text", text = $"{systemPrompt}\n\nMuestra Alfa: {request.Title1}\nMuestra Beta: {request.Title2}" },
+                                new { type = "image_url", image_url = new { url = request.ImageUrl1 } },
+                                new { type = "image_url", image_url = new { url = request.ImageUrl2 } }
+                            }
+                        }
+                    },
+                    response_format = new { type = "json_object" },
+                    temperature = 0.4
+                };
+
+                requestMessage.Content = new StringContent(
+                    JsonSerializer.Serialize(requestBody),
+                    Encoding.UTF8,
+                    "application/json"
+                );
+
+                var response = await _httpClient.SendAsync(requestMessage);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new Exception($"Error en Gemini: {response.ReasonPhrase}");
+                }
+
+                var rawResponse = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(rawResponse);
+
+                var jsonResult = doc.RootElement
+                    .GetProperty("choices")[0]
+                    .GetProperty("message")
+                    .GetProperty("content")
+                    .GetString();
+
+                using var resultDoc = JsonDocument.Parse(jsonResult ?? "{}");
+                var root = resultDoc.RootElement;
 
                 return new ImageComparisonResponse(
-                    root.GetProperty("AnalisisSideBySide").GetString() ?? string.Empty,
-                    root.GetProperty("ElementosComunes").GetString() ?? string.Empty,
-                    root.GetProperty("DiferenciasClave").GetString() ?? string.Empty,
-                    root.GetProperty("ConclusionCientifica").GetString() ?? string.Empty
+                    root.GetProperty("analisisSideBySide").GetString() ?? string.Empty,
+                    root.GetProperty("elementosComunes").GetString() ?? string.Empty,
+                    root.GetProperty("diferenciasClave").GetString() ?? string.Empty,
+                    root.GetProperty("conclusionCientifica").GetString() ?? string.Empty
                 );
             }
-            catch (Exception ex) when (ex.Message == "AI_LIMIT_REACHED" || ex.Message == "API_KEY_NOT_CONFIGURED" || ex is InvalidOperationException)
+            catch
             {
                 return new ImageComparisonResponse(
-                    $"[Análisis de Inferencia] Confrontación exitosa entre '{request.Title1}' and '{request.Title2}'. Ambas capturas representan hitos masivos observados por instrumentación óptica en el espacio profundo.",
-                    "Coincidencia estructural en la captura de emisiones electromagnéticas e ionización de gases ligeros.",
-                    "Variación en la morfología del espectro de emisión térmica detectado por los sensores de órbita.",
+                    $"[Análisis Óptico Local] Confrontación simulada entre '{request.Title1}' y '{request.Title2}'. Las signaturas de color detectadas confirman estructuras gaseosas complejas.",
+                    "Coincidencia estructural en la captura de emisiones electromagnéticas e ionización de elementos ligeros.",
+                    "Variación en la densidad de píxeles calientes y morfología del espectro térmico remanente.",
                     "Conclusión: Las muestras ofrecen un contraste analítico ideal para estudiar la evolución en diferentes escalas del universo."
                 );
             }
@@ -105,7 +141,7 @@ namespace SpaceExplorer.Infrastructure.Services
 
             var requestBody = new
             {
-                model = "llama3-8b-8192", 
+                model = "gemini-1.5-flash",
                 messages = new[]
                 {
                     new { role = "user", content = prompt }
@@ -122,27 +158,19 @@ namespace SpaceExplorer.Infrastructure.Services
 
             var response = await _httpClient.SendAsync(requestMessage);
 
-            if (response.StatusCode == System.Net.HttpStatusCode.TooManyRequests ||
-                response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                throw new InvalidOperationException("AI_LIMIT_REACHED");
-            }
-
             if (!response.IsSuccessStatusCode)
             {
-                throw new Exception($"Error en el motor de IA externo: {response.ReasonPhrase}");
+                throw new Exception($"Error en motor de IA: {response.ReasonPhrase}");
             }
 
             var rawResponse = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(rawResponse);
 
-            var contentString = doc.RootElement
+            return doc.RootElement
                 .GetProperty("choices")[0]
                 .GetProperty("message")
                 .GetProperty("content")
-                .GetString();
-
-            return contentString ?? throw new Exception("La respuesta de la IA vino vacía.");
+                .GetString() ?? throw new Exception("Respuesta vacía.");
         }
     }
 }
