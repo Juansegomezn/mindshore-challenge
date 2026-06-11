@@ -68,10 +68,10 @@ export const ComparisonPage = () => {
 
     try {
       const response = await apiClient.post('/ai/compare', {
-        imageUrl1: slot1.url,
-        title1: slot1.title,
-        imageUrl2: slot2.url,
-        title2: slot2.title
+        ImageUrl1: slot1.url,
+        Title1: slot1.title,
+        ImageUrl2: slot2.url,
+        Title2: slot2.title
       });
       setResult(response.data);
     } catch (err) {
