@@ -65,9 +65,16 @@ export const CollectionsPage = () => {
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>📚 Mis Álbumes Cósmicos</h1>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold' }}>Mis Álbumes Cósmicos</h1>
           <button onClick={() => navigate('/search')} style={{ marginLeft: 'auto', padding: '0.5rem 1rem', backgroundColor: '#2563EB', color: '#FFF', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
             Volver al Buscador
+          </button>
+
+          <button 
+            onClick={() => navigate('/compare')} 
+            style={{ padding: '0.5rem 1rem', backgroundColor: '#A855F7', color: '#FFF', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginRight: '0.5rem' }}
+          >
+            ✨ Abrir Comparador IA
           </button>
         </div>
 

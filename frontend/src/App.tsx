@@ -3,6 +3,7 @@ import { AuthPage } from './features/auth/AuthPages';
 import { SearchPage } from './features/dashboard/SearchPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { CollectionsPage } from './features/collections/CollectionsPage';
+import { ComparisonPage } from './features/ai-tools/ComparisonPage';
 
 function App() {
   return (
@@ -20,6 +21,12 @@ function App() {
         <Route path="/collections" element={
           <ProtectedRoute>
             <CollectionsPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/compare" element={
+          <ProtectedRoute>
+            <ComparisonPage />
           </ProtectedRoute>
         } />
 
