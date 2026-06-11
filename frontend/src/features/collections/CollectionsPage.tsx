@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { apiClient } from '../../core/api';
 import { Tag, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SweetModal } from '../../components/SweetModal';
 
 interface MediaItem {
   id: string;
@@ -22,6 +23,14 @@ export const CollectionsPage = () => {
   const navigate = useNavigate();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [tagInputs, setTagInputs] = useState<{ [key: string]: string }>({});
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'confirm' as 'success' | 'error' | 'confirm',
+    title: '',
+    message: ''
+  });
 
   const fetchCollections = async () => {
     try {
@@ -36,14 +45,45 @@ export const CollectionsPage = () => {
     fetchCollections();
   }, []);
 
-  const handleDeleteCollection = async (id: string) => {
-    if (!confirm('¿Deseas desintegrar esta colección espacial por completo?')) return;
+  const triggerDeleteConfirmation = (id: string) => {
+    setSelectedCollectionId(id);
+    setModalConfig({
+      isOpen: true,
+      type: 'confirm',
+      title: '¿Desintegrar Colección?',
+      message: '¿Estás seguro de que deseas eliminar esta colección espacial por completo? Esta acción es irreversible.'
+    });
+  };
+
+  const executeDeleteCollection = async () => {
+    if (!selectedCollectionId) return;
+
     try {
-      await apiClient.delete(`/collection/${id}`);
-      setCollections(collections.filter(c => c.id !== id));
+      await apiClient.delete(`/collection/${selectedCollectionId}`);
+      setCollections(collections.filter(c => c.id !== selectedCollectionId));
+      
+      setModalConfig({
+        isOpen: true,
+        type: 'success',
+        title: 'Colección Eliminada',
+        message: 'La carpeta y sus registros han sido removidos de la bitácora.'
+      });
     } catch (err) {
       console.error(err);
+      setModalConfig({
+        isOpen: true,
+        type: 'error',
+        title: 'Fallo del Sistema',
+        message: 'No se pudo eliminar la colección en este momento.'
+      });
+    } finally {
+      setSelectedCollectionId(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setModalConfig({ ...modalConfig, isOpen: false });
+    setSelectedCollectionId(null);
   };
 
   const handleAddTag = async (e: React.FormEvent, mediaId: string) => {
@@ -88,7 +128,7 @@ export const CollectionsPage = () => {
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF' }}>{col.name}</h2>
                   <p style={{ color: '#9CA3AF', fontSize: '0.9rem' }}>{col.description}</p>
                 </div>
-                <button onClick={() => handleDeleteCollection(col.id)} style={{ padding: '0.5rem', backgroundColor: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer' }}>
+                <button onClick={() => triggerDeleteConfirmation(col.id)} style={{ padding: '0.5rem', backgroundColor: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer' }}>
                   <Trash2 size={20} />
                 </button>
               </div>
@@ -123,6 +163,21 @@ export const CollectionsPage = () => {
           ))
         )}
       </div>
+
+      <SweetModal 
+        isOpen={modalConfig.isOpen}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        onConfirm={() => {
+          if (modalConfig.type === 'confirm') {
+            executeDeleteCollection();
+          } else {
+            setModalConfig({ ...modalConfig, isOpen: false });
+          }
+        }}
+        onCancel={handleCancelDelete}
+      />
     </div>
   );
 };

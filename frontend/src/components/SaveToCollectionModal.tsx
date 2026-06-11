@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiClient } from '../core/api';
 import { FolderPlus, X } from 'lucide-react';
+import { SweetModal } from './SweetModal';
 
 interface Collection {
   id: string;
@@ -18,13 +19,15 @@ interface SaveModalProps {
     url: string;
     mediaType: string;
   } | null;
+  onNotify: (success: boolean) => void;
 }
 
-export const SaveToCollectionModal = ({ isOpen, onClose, mediaItem }: SaveModalProps) => {
+export const SaveToCollectionModal = ({ isOpen, onClose, mediaItem, onNotify }: SaveModalProps) => {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [modalConfig, setModalConfig] = useState({ isOpen: false, type: 'success' as 'success' | 'error', title: '', message: '' });
 
   const fetchCollections = async () => {
     try {
@@ -68,19 +71,21 @@ export const SaveToCollectionModal = ({ isOpen, onClose, mediaItem }: SaveModalP
         url: mediaItem.url,
         mediaType: mediaItem.mediaType
       });
-      alert('Elemento guardado con éxito en tu bitácora cósmica.');
+      onNotify(true);
       onClose();
     } catch (err) {
       console.error('Error guardando elemento', err);
-      alert('No se pudo guardar el elemento.');
+      onNotify(false);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen || !mediaItem) return null;
+  if (!isOpen && !modalConfig.isOpen) return null;
 
   return (
+    <>
+    {isOpen && mediaItem && (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, fontFamily: 'sans-serif' }}>
       <div style={{ backgroundColor: '#111827', border: '1px solid #1F2937', borderRadius: '12px', padding: '2rem', width: '100%', maxWidth: '450px', color: '#FFF' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -118,5 +123,15 @@ export const SaveToCollectionModal = ({ isOpen, onClose, mediaItem }: SaveModalP
         )}
       </div>
     </div>
+    )}
+
+    <SweetModal 
+      isOpen={modalConfig.isOpen}
+      type={modalConfig.type}
+      title={modalConfig.title}
+      message={modalConfig.message}
+      onConfirm={() => { setModalConfig({ ...modalConfig, isOpen: false }); if(modalConfig.type === 'success') onClose(); }}
+    />
+    </>
   );
 };

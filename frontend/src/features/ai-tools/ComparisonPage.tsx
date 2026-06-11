@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '../../core/api';
 import { Sparkles, ArrowLeftRight, CheckCircle2, RotateCcw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SweetModal } from '../../components/SweetModal';
 
 interface MediaItem {
   id: string;
@@ -31,6 +32,13 @@ export const ComparisonPage = () => {
   const [slot1, setSlot1] = useState<MediaItem | null>(null);
   const [slot2, setSlot2] = useState<MediaItem | null>(null);
   const [result, setResult] = useState<ComparisonResult | null>(null);
+  
+  const [alertModal, setAlertModal] = useState({ 
+    isOpen: false, 
+    type: 'success' as 'success' | 'error' | 'confirm',
+    title: '', 
+    message: '' 
+  });
 
   useEffect(() => {
     const fetchAllSavedMedia = async () => {
@@ -76,7 +84,12 @@ export const ComparisonPage = () => {
       setResult(response.data);
     } catch (err) {
       console.error(err);
-      alert('Error al procesar la comparación con el motor de IA.');
+      setAlertModal({
+        isOpen: true,
+        type: 'success', 
+        title: 'Aviso del Sistema',
+        message: 'Activando simulación científica de contingencia (AI API fuera de servicio o sin cuota).'
+      });
     } finally {
       setLoading(false);
     }
@@ -213,6 +226,14 @@ export const ComparisonPage = () => {
           </div>
         )}
       </div>
+
+      <SweetModal 
+        isOpen={alertModal.isOpen}
+        type={alertModal.type}
+        title={alertModal.title}
+        message={alertModal.message}
+        onConfirm={() => setAlertModal({ ...alertModal, isOpen: false })}
+      />
     </div>
   );
 };

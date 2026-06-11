@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { apiClient } from '../../core/api';
 import { Search, Compass, Folder } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SaveToCollectionModal } from '../../components/SaveToCollectionModal';
+import { SweetModal } from '../../components/SweetModal';
 
 interface NasaItem {
   id: string;
@@ -26,11 +27,17 @@ export const SearchPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<NasaItem | null>(null);
 
+  const [alertConfig, setAlertConfig] = useState({
+    isOpen: false,
+    type: 'success' as 'success' | 'error',
+    title: '',
+    message: ''
+  });
+
   const openSaveModal = (item: NasaItem) => {
     setSelectedMedia(item);
     setIsModalOpen(true);
   };
-  // --------------------------------------------
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +61,28 @@ export const SearchPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSaveNotify = (success: boolean) => {
+    setIsModalOpen(false);
+    
+    setTimeout(() => {
+      if (success) {
+        setAlertConfig({
+          isOpen: true,
+          type: 'success',
+          title: '¡Bitácora Actualizada!',
+          message: 'La muestra espacial ha sido guardada en tu base de datos local con éxito.'
+        });
+      } else {
+        setAlertConfig({
+          isOpen: true,
+          type: 'error',
+          title: 'Fallo de Conexión',
+          message: 'No pudimos archivar la imagen en este momento.'
+        });
+      }
+    }, 100);
   };
 
   return (
@@ -150,14 +179,19 @@ export const SearchPage = () => {
           </div>
         )}
 
-        {/* LLAMADA AL MODAL */}
-        {isModalOpen && selectedMedia && (
-          <SaveToCollectionModal 
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)} 
-            mediaItem={selectedMedia} 
-          />
-        )}
+        <SaveToCollectionModal 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+          mediaItem={selectedMedia}
+          onNotify={handleSaveNotify}
+        />
+        <SweetModal 
+          isOpen={alertConfig.isOpen}
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onConfirm={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+        />
 
       </div>
     </div>
