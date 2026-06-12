@@ -70,7 +70,7 @@ namespace SpaceExplorer.API.Controllers
             return userId;
         }
         
-        [HttpDelete("{collectionId:guid}/media/{mediaId:guid}")]
+        [HttpDelete("{collectionId:guid}/media/{mediaId}")]
         public async Task<IActionResult> RemoveMedia(Guid collectionId, string mediaId)
         {
             try
@@ -79,7 +79,7 @@ namespace SpaceExplorer.API.Controllers
                 
                 if (!result)
                 {
-                    return NotFound(new { message = "No se encontró la colección o el elemento espacial especificado." });
+                    return NotFound(new { message = "No se encontró el registro de vinculación cósmica." });
                 }
 
                 return Ok(new { message = "Elemento removido del álbum correctamente." });
