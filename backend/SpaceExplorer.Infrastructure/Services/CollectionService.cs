@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SpaceExplorer.Core.DTOs;
 using SpaceExplorer.Core.Entities;
@@ -140,6 +136,27 @@ namespace SpaceExplorer.Infrastructure.Services
             _context.MediaItemTags.Add(itemTag);
             await _context.SaveChangesAsync();
             return true;
+        }
+        
+        public async Task<bool> RemoveMediaFromCollectionAsync(Guid collectionId, string mediaId)
+        {
+            var collection = await _context.Collections
+                .Include(c => c.CollectionMedias)
+                .FirstOrDefaultAsync(c => c.Id == collectionId);
+
+            if (collection == null) return false;
+
+            string cleanTargetId = mediaId.Trim().ToLower();
+
+            var collectionMedia = collection.CollectionMedias
+                .FirstOrDefault(cm => cm.MediaItemId.ToString().ToLower() == cleanTargetId); 
+
+            if (collectionMedia == null) return false;
+
+            collection.CollectionMedias.Remove(collectionMedia);
+            
+            var rowsAffected = await _context.SaveChangesAsync();
+            return rowsAffected > 0;
         }
     }
 }

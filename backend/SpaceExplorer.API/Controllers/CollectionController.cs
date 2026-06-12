@@ -1,6 +1,4 @@
-using System;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SpaceExplorer.Core.DTOs;
@@ -70,6 +68,26 @@ namespace SpaceExplorer.API.Controllers
                 throw new UnauthorizedAccessException("El token del usuario es inválido o no contiene el identificador correcto.");
             }
             return userId;
+        }
+        
+        [HttpDelete("{collectionId:guid}/media/{mediaId:guid}")]
+        public async Task<IActionResult> RemoveMedia(Guid collectionId, string mediaId)
+        {
+            try
+            {
+                var result = await _collectionService.RemoveMediaFromCollectionAsync(collectionId, mediaId);
+                
+                if (!result)
+                {
+                    return NotFound(new { message = "No se encontró la colección o el elemento espacial especificado." });
+                }
+
+                return Ok(new { message = "Elemento removido del álbum correctamente." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Fallo interno al procesar la remoción.", error = ex.Message });
+            }
         }
     }
 }
