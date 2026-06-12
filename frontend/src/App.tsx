@@ -4,6 +4,7 @@ import { SearchPage } from './features/dashboard/SearchPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { CollectionsPage } from './features/collections/CollectionsPage';
 import { ComparisonPage } from './features/ai-tools/ComparisonPage';
+import { Layout } from './components/Layout';
 
 function App() {
   return (
@@ -11,24 +12,18 @@ function App() {
       <Routes>
         <Route path="/login" element={<AuthPage mode="login" />} />
         <Route path="/register" element={<AuthPage mode="register" />} />
-        
-        <Route path="/search" element={
-          <ProtectedRoute>
-            <SearchPage />
-          </ProtectedRoute>
-        } />
 
-        <Route path="/collections" element={
-          <ProtectedRoute>
-            <CollectionsPage />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/compare" element={
-          <ProtectedRoute>
-            <ComparisonPage />
-          </ProtectedRoute>
-        } />
+        <Route 
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/collections" element={<CollectionsPage />} />
+          <Route path="/compare" element={<ComparisonPage />} />
+        </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
