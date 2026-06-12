@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiClient } from '../../core/api';
-import { Tag, Trash2 } from 'lucide-react';
+import { Tag, Trash2, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { SweetModal } from '../../components/SweetModal';
 
@@ -23,7 +23,9 @@ export const CollectionsPage = () => {
   const navigate = useNavigate();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [tagInputs, setTagInputs] = useState<{ [key: string]: string }>({});
+  
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [selectedMediaId, setSelectedMediaId] = useState<string | null>(null);
 
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -47,6 +49,7 @@ export const CollectionsPage = () => {
 
   const triggerDeleteConfirmation = (id: string) => {
     setSelectedCollectionId(id);
+    setSelectedMediaId(null);
     setModalConfig({
       isOpen: true,
       type: 'confirm',
@@ -81,9 +84,57 @@ export const CollectionsPage = () => {
     }
   };
 
+  const triggerRemoveMediaConfirmation = (collectionId: string, mediaId: string) => {
+    setSelectedCollectionId(collectionId);
+    setSelectedMediaId(mediaId);
+    setModalConfig({
+      isOpen: true,
+      type: 'confirm',
+      title: '¿Remover Muestra?',
+      message: '¿Deseas desvincular esta imagen de la colección? El archivo permanecerá disponible para otros análisis.'
+    });
+  };
+
+  const executeRemoveMedia = async () => {
+    if (!selectedCollectionId || !selectedMediaId) return;
+
+    try {
+      await apiClient.delete(`/collection/${selectedCollectionId}/media/${selectedMediaId}`);
+      
+      setCollections(collections.map(col => {
+        if (col.id === selectedCollectionId) {
+          return {
+            ...col,
+            items: col.items.filter(item => item.id !== selectedMediaId)
+          };
+        }
+        return col;
+      }));
+
+      setModalConfig({
+        isOpen: true,
+        type: 'success',
+        title: 'Muestra Removida',
+        message: 'La imagen ha sido extraída del álbum satisfactoriamente.'
+      });
+    } catch (err) {
+      console.error(err);
+      setModalConfig({
+        isOpen: true,
+        type: 'error',
+        title: 'Error de Red',
+        message: 'No se pudo desvincular el recurso de la base de datos.'
+      });
+    } finally {
+      setSelectedCollectionId(null);
+      setSelectedMediaId(null);
+    }
+  };
+
   const handleCancelDelete = () => {
     setModalConfig({ ...modalConfig, isOpen: false });
     setSelectedCollectionId(null);
+    setSelectedMediaId(null);
   };
 
   const handleAddTag = async (e: React.FormEvent, mediaId: string) => {
@@ -128,7 +179,7 @@ export const CollectionsPage = () => {
                   <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#FFF' }}>{col.name}</h2>
                   <p style={{ color: '#9CA3AF', fontSize: '0.9rem' }}>{col.description}</p>
                 </div>
-                <button onClick={() => triggerDeleteConfirmation(col.id)} style={{ padding: '0.5rem', backgroundColor: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer' }}>
+                <button onClick={() => triggerDeleteConfirmation(col.id)} title="Eliminar álbum entero" style={{ padding: '0.5rem', backgroundColor: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer' }}>
                   <Trash2 size={20} />
                 </button>
               </div>
@@ -136,7 +187,30 @@ export const CollectionsPage = () => {
               {/* Grid Interno de MediaItems */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
                 {col.items.map((item) => (
-                  <div key={item.id} style={{ backgroundColor: '#1F2937', borderRadius: '8px', overflow: 'hidden', border: '1px solid #374151', display: 'flex', flexDirection: 'column' }}>
+                  <div key={item.id} style={{ backgroundColor: '#1F2937', borderRadius: '8px', overflow: 'hidden', border: '1px solid #374151', display: 'flex', flexDirection: 'column', position: 'relative' }}>                   
+                    <button 
+                      onClick={() => triggerRemoveMediaConfirmation(col.id, item.id)}
+                      title="Remover imagen del álbum"
+                      style={{
+                        position: 'absolute',
+                        top: '8px',
+                        right: '8px',
+                        backgroundColor: 'rgba(17, 24, 39, 0.75)',
+                        border: '1px solid rgba(239, 68, 68, 0.4)',
+                        color: '#EF4444',
+                        padding: '0.4rem',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 10,
+                        backdropFilter: 'blur(4px)'
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+
                     <img src={item.url} alt={item.title} style={{ width: '100%', height: '160px', objectFit: 'cover' }} />
                     <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
                       <h4 style={{ fontWeight: 'bold', color: '#FFF', marginBottom: '0.5rem', fontSize: '1rem' }}>{item.title}</h4>
@@ -171,7 +245,11 @@ export const CollectionsPage = () => {
         message={modalConfig.message}
         onConfirm={() => {
           if (modalConfig.type === 'confirm') {
-            executeDeleteCollection();
+            if (selectedMediaId) {
+              executeRemoveMedia();
+            } else {
+              executeDeleteCollection();
+            }
           } else {
             setModalConfig({ ...modalConfig, isOpen: false });
           }
